@@ -99,6 +99,16 @@ export default function HealthcareChatInterface() {
       }
 
       const data = await response.json()
+      console.log(data);
+      if (Array.isArray(data) && data.length > 0 && data[0].output) {
+        try {
+          const output = JSON.parse(data[0].output);
+          return output.message || "Maaf, saya tidak dapat memproses permintaan Anda saat ini.";
+        } catch (e) {
+          console.error("Failed to parse output JSON", e);
+          return "Maaf, terjadi kesalahan pada format data.";
+        }
+      }
       return data.message || "Maaf, saya tidak dapat memproses permintaan Anda saat ini."
     } catch (error) {
       console.error("Error calling API:", error)
