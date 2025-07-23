@@ -1,0 +1,943 @@
+{
+  "name": "chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "healthcare-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        4080
+      ],
+      "id": "a11ea51d-3648-4fbb-8d6b-40234026bada",
+      "name": "Trigger: Chatbot Request1",
+      "notesInFlow": true,
+      "webhookId": "8a2c3897-d6d3-4bf1-89b9-6c168de68c94",
+      "notes": "Menerima request masuk dari user melalui webhook."
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1712,
+        4304
+      ],
+      "id": "46ae75fc-29ae-4b4f-a1db-2718ade0f8a0",
+      "name": "LLM: Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "UR4aXii9Ac0H9Q30",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        1840,
+        4304
+      ],
+      "id": "76f7c3c6-68ee-49c3-b7a4-db9b90115fec",
+      "name": "Memory: Postgres Chat1",
+      "credentials": {
+        "postgres": {
+          "id": "zGsBmePgoFWIAG3u",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "pharmacy_items",
+        "returnAll": true,
+        "filterType": "none"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        4304
+      ],
+      "id": "4332d60b-e7c1-4c59-bbaa-8f6a417c70f1",
+      "name": "Tool: Get All Products1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7tPsQFc3YTIZvrxA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"isOrder\": true,\n  \"orderData\": {},\n  \"message\": \"string\",\n  \"query\": \"string\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2544,
+        4304
+      ],
+      "id": "4592c036-501a-4806-9b5d-4b3b7e4e7d1f",
+      "name": "Parser: Structured Output1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=[ATURAN UTAMA & FORMAT OUTPUT WAJIB]\nPERHATIAN: Seluruh output Anda HARUS berupa satu objek JSON mentah (raw JSON object) yang valid.\nJANGAN ada teks tambahan, komentar, blok kode markdown, atau karakter apa pun di luar objek JSON.\n\nPERINGATAN KERAS DIBAWH INI WAJIB:\nProperti `query` WAJIB selalu ada dan berisi ulangi teks asli dari user ({{ $json.body.message }}). Jika tidak ada, parsing akan gagal.\n\nSTRUKTUR JSON WAJIB INI HARUS WAJIB:\n{\n  \"isOrder\": boolean,\n  \"orderData\": object | null,\n  \"message\": \"string\",\n  \"query\": \"string\"\n}\n\nKetentuan:\n- `isOrder`: true jika percakapan terkait alur pemesanan farmasi. Jika tidak, set false.\n- `orderData`: null jika `isOrder = false`. Jika `isOrder = true`, isikan objek pesanan dengan struktur:\n  {\n    \"customer\": {\n      \"name\": \"string\",\n      \"phone\": \"string\",\n      \"address\": \"string\"\n    },\n    \"items\": [\n      {\n        \"name\": \"string\",\n        \"quantity\": integer,\n        \"unit\": \"string\",\n        \"price_per_unit\": integer\n      }\n    ],\n    \"total_price\": integer\n  }\n\n- `message`: Jawaban untuk customer dalam format HTML, ramah dan sederhana, gunakan emoji (💊, ✨, 🙏, 😊).\n- `query`: Wajib diisi ulangi teks asli user dari {{ $json.body.message }} (hindari null/undefined).\n  \nJika `isOrder = false` dan user hanya bertanya (misal: lokasi pengiriman, jam buka, metode pembayaran):\n1. WAJIB gunakan tool:\n   Tool: Pinecone Vector Store1\n   Dengan parameter:\n   {\n     \"query\": \"string\",\n     \"namespace\": \"Pharmacy\"\n   }\n\n2. Gunakan hasil dari tool tersebut untuk membentuk `message`.\n\nGAYA & PERAN:\n- Nama Anda adalah **Maya**.\n- Anda adalah asisten farmasi digital **Cepat Sehat**, melayani pengiriman di Bali & Jakarta.\n- Anda ramah, informatif, dan profesional.\n- Anda **tidak memberikan diagnosis atau menyarankan obat** di luar data internal.\n- Anda hanya membantu **memproses pesanan** atau **memberi info layanan** Cepat Sehat.\n\n---\n\nTAHAP RESPON JIKA CUSTOMER MAU ORDER:\n1. Saat customer ingin order:\n   - isOrder: true\n   - orderData: null\n   - message: Minta data pelanggan & item\n\n2. Saat data lengkap sudah diberikan:\n   - isOrder: true\n   - orderData: objek detail\n   - message: Ringkasan + total harga\n   - Tambahkan instruksi: *\"Silakan ketik BENAR jika sudah sesuai untuk kami proses pesanan Anda.\"*\n\n3. Jika user ketik **\"BENAR\"**:\n   a. isOrder = true\n   b. Validasi `customer` dari nomor HP → insert jika belum ada\n   c. Insert order ke Supabase\n   d. Ambil `order_id` & `payment_url`\n\n4. Jika `order_id` dan `payment_url` sudah ada:\n   - Update `orderData` dengan itu\n   - message:\n     ```\n     <p>Terima kasih, Kak {{ customer_name }}! Pesanan Anda dengan nomor <strong>#{{ order_id }}</strong> telah berhasil kami proses. ✨</p>\n     <p>Silakan lanjutkan pembayaran melalui tautan berikut: <a href=\"{{ payment_url }}\">{{ payment_url }}</a></p>\n     <p>Kami akan segera menyiapkan pesanan Anda. 🙏</p>\n     ```\n\n5. Jika hanya bertanya:\n   - isOrder = false\n   - orderData = null\n   - query = isi ulangi teks asli user\n   - message = berdasarkan hasil tool Pinecone\n\nJIKA isOrder = false (hanya bertanya):\n1. Jalankan tool: **Pinecone Vector Store1**\n   Parameternya:\n   ```json\n   {\n     \"query\": \"{{ $json.body.message }}\",\n     \"namespace\": \"Pharmacy\"\n   }\n\n📌 Contoh message jika minta data:\n<p>Baik, dengan senang hati saya bantu proses pesanannya, Kak. 😊</p><ul><li><strong>Nama Lengkap:</strong></li><li><strong>Alamat Pengiriman:</strong></li><li><strong>Nomor Telepon:</strong></li><li><strong>Detail Pesanan:</strong></li></ul>\n\n---\n\n🧠 Integration Notes:\n- Jika `query` kosong/null → jangan lanjutkan. Harus isi string asli dari user.\n- Gunakan script berikut jika butuh normalisasi:\n```js\nconst query = $json[\"query\"] || $json[\"userMessage\"];\nconst cleanedQuery = (query ?? \"\").replace(/\\s+/g, \" \").trim();\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        1936,
+        4080
+      ],
+      "id": "3d0787e9-7983-4c00-a28f-99baa46a4c0d",
+      "name": "Agent: Process Chat & Extract Data1",
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "onError": "continueRegularOutput",
+      "notes": "Agent ini menggunakan Google Gemini untuk memahami input user dan mengubahnya menjadi data JSON terstruktur sesuai prompt. Output dari node ini menjadi dasar untuk alur selanjutnya."
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2544,
+        3936
+      ],
+      "id": "a4c37fdd-dc50-492c-9632-9284c5e375f5",
+      "name": "Response: Acknowledge Request1",
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        4304
+      ],
+      "id": "1e1d5ce3-c5bd-4de9-adf5-52494c3621b3",
+      "name": "get order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7tPsQFc3YTIZvrxA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3120dea2-ce2c-42ec-bca1-f2429a3bb0d7",
+              "leftValue": "={{ $json.output.isOrder }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2320,
+        3840
+      ],
+      "id": "0518e182-f964-4336-a1a8-e33c80f9cb93",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ed73c186-2e37-437c-ab3f-88eba7060fc0",
+              "leftValue": "={{ $json.output.orderData }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2544,
+        3744
+      ],
+      "id": "70e3ad5d-c52f-46f7-8bca-e9c72410fb83",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2768,
+        3744
+      ],
+      "id": "b8e13213-3867-4181-a69f-e0752cf526e6",
+      "name": "response to entry data"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        5008,
+        3312
+      ],
+      "id": "6abf81c3-270a-4a0c-9fa9-245c09b16105",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "=use this database for basic question from user",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "sample",
+          "mode": "list",
+          "cachedResultName": "sample"
+        },
+        "options": {
+          "pineconeNamespace": "Pharmacy"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        2224,
+        4304
+      ],
+      "id": "05d1b313-a2cb-4d84-8322-df4a10e3be89",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "VUqwJYJ568SaCgUK",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        4512
+      ],
+      "id": "97de408a-de44-4f0c-9564-7cb59ec89112",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "UR4aXii9Ac0H9Q30",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7f05f452-c694-465a-a09d-a5f24e037fbb",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3440,
+        3344
+      ],
+      "id": "a780282a-ca9e-4860-89fd-53d41b128a13",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "customers",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "keyValue": "={{ $json.orderData.customer.phone }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3216,
+        3344
+      ],
+      "id": "34f6fb9f-e481-4eea-94e3-22ecf7997b6b",
+      "name": "get customer by phone number",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7tPsQFc3YTIZvrxA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2141374e-582e-4ce0-806d-d3826cc20af7",
+              "leftValue": "={{ $json.output.query.toLowerCase() }}",
+              "rightValue": "=benar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2768,
+        3552
+      ],
+      "id": "5a8ccbba-2667-47a3-9867-c0395ddc46e5",
+      "name": "if user write benar"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2992,
+        3408
+      ],
+      "id": "1775e7b1-d9c1-40ad-bbb2-346c76620ab5",
+      "name": "field customer input"
+    },
+    {
+      "parameters": {
+        "tableId": "customers",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $json.orderData.customer.name }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $json.orderData.customer.phone }}"
+            },
+            {
+              "fieldId": "address",
+              "fieldValue": "={{ $json.orderData.customer.address }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3664,
+        3600
+      ],
+      "id": "6beee585-f752-467f-9a69-34a82dc5335f",
+      "name": "create customer",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7tPsQFc3YTIZvrxA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3664,
+        3408
+      ],
+      "id": "67f47940-cf07-4a47-8b3b-c22462ba737a",
+      "name": "Merge5",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2992,
+        3600
+      ],
+      "id": "757e4246-e9c4-4838-9bb7-00db8175c6b8",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "tableId": "orders",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldId": "items",
+              "fieldValue": "={{ $json.orderData.items }}"
+            },
+            {
+              "fieldId": "total_price",
+              "fieldValue": "={{ $json.orderData.total_price }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3888,
+        3488
+      ],
+      "id": "c340b323-a012-48ff-80ef-61cf3a418969",
+      "name": "create order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7tPsQFc3YTIZvrxA",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "572786ff-ab30-4802-8faa-7a888f382ace",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4112,
+        3488
+      ],
+      "id": "e9c6a7b8-821d-44ec-b209-ff8ca4d49dd3",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n \"message\": \"Gagal order\"      \n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        4336,
+        3536
+      ],
+      "id": "9fff919c-15d1-4413-bb91-14ca06be3658",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.xendit.co/sessions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"reference_id\": \"96fa0f5a-77fa-4c94-8d2c-4ebfb200acfa\",\n  \"session_type\": \"PAY\",\n  \"customer_id\": \"cust-04e2e7dd-f56f-493d-aa6c-e48dfa55e943\",\n  \"currency\": \"IDR\",\n  \"amount\": {{ $json.total_price }},\n  \"mode\": \"PAYMENT_LINK\",\n  \"country\": \"ID\",\n  \"locale\": \"en\",\n  \"allowed_payment_channels\": [\"CARDS\", \"OVO\", \"DANA\"],\n  \"description\": \"{{ $json.orderData.items.map(i => i.quantity + ' ' + i.unit + ' ' + i.name + ' @' + i.price_per_unit).join(', ') }}\",\n  \"success_return_url\": \"https://yourcompany.com/success/example_item=my_item\",\n  \"cancel_return_url\": \"https://yourcompany.com/cancel/example_item=my_item\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4560,
+        3312
+      ],
+      "id": "cee55032-f954-4dd9-b529-f7e08821cc03",
+      "name": "xendit geenrate session",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "i3S9480UFa2WHEIh",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4336,
+        3312
+      ],
+      "id": "abc54faf-e318-41aa-a460-1ae54ded2126",
+      "name": "Merge6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fc4daae6-7d2e-41f7-be79-ca7a866254d0",
+              "name": "=output.message",
+              "value": "=<p>Terima kasih, Kak! Pesanan Anda dengan nomor <strong>#{{$json[\"payment_session_id\"]}}</strong> telah berhasil kami proses. ✨</p> <p>Silakan lanjutkan pembayaran melalui tautan berikut: <a href=\"{{$json[\"payment_link_url\"]}}\">KLIK</a></p> <p>Kami akan segera menyiapkan pesanan Anda. 🙏</p>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4784,
+        3312
+      ],
+      "id": "f32d07e5-08b3-42fa-86f6-a041321f8261",
+      "name": "set response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger: Chatbot Request1": {
+      "main": [
+        [
+          {
+            "node": "Agent: Process Chat & Extract Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM: Google Gemini1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent: Process Chat & Extract Data1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory: Postgres Chat1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agent: Process Chat & Extract Data1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Get All Products1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent: Process Chat & Extract Data1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser: Structured Output1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Agent: Process Chat & Extract Data1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent: Process Chat & Extract Data1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Response: Acknowledge Request1": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "get order": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent: Process Chat & Extract Data1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response: Acknowledge Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "if user write benar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "response to entry data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agent: Process Chat & Extract Data1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "create customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get customer by phone number": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if user write benar": {
+      "main": [
+        [
+          {
+            "node": "field customer input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "field customer input": {
+      "main": [
+        [
+          {
+            "node": "get customer by phone number",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "create customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "create order",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "create customer": {
+      "main": [
+        []
+      ]
+    },
+    "create order": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "xendit geenrate session": {
+      "main": [
+        [
+          {
+            "node": "set response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge6": {
+      "main": [
+        [
+          {
+            "node": "xendit geenrate session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "74674724-d068-429d-8897-a36c8e09ed45",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "38fc5de058367b819acb187c4304e973dd1b5fc3f344aed7d8486538e7c34517"
+  },
+  "id": "f2ToDFw7SvmvlMBe",
+  "tags": [
+    {
+      "name": "Maya AI Agent",
+      "id": "kPxDG2mbTXLvAfvo",
+      "createdAt": "2025-07-23T05:05:02.740Z",
+      "updatedAt": "2025-07-23T05:05:02.740Z"
+    }
+  ]
+}

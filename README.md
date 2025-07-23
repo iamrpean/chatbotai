@@ -1,95 +1,119 @@
-# Modern Next.js Chatbot Project
+# 🧠 AI Chatbot Automation with n8n, Pinecone, and Xendit
 
-A modern chatbot application built with the latest Next.js technologies and best practices.
+**Live URL:** [https://chatbotai-beige.vercel.app](https://chatbotai-beige.vercel.app)  
+**Status:** 🚧 *Free Tier Limitations (Gemini 1.5 Pro)*  
+**Main Features:** RAG (Retrieval-Augmented Generation), Webhook Automation, Vector Search, Order + Payment Automation
 
-## 🚀 Tech Stack
+---
 
-- **[Next.js 15](https://nextjs.org)** - React framework with App Router
-- **[TypeScript](https://www.typescriptlang.org/)** - Type safety and better developer experience
-- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
-- **[shadcn/ui](https://ui.shadcn.com/)** - Beautiful, accessible component library
-- **[Lucide React](https://lucide.dev/)** - Modern SVG icon library
-- **[Turbopack](https://turbo.build/pack)** - Fast development server
+## 🚀 JSON Automation (n8n Workflow)
 
-## 🛠️ Features
+The full automation workflow is available in the `Chatbot.json` file, which can be imported into [n8n](https://n8n.io).
 
-- ⚡ **Fast Development** - Powered by Turbopack for lightning-fast builds
-- 🎨 **Modern UI** - Beautiful components with shadcn/ui and Tailwind CSS
-- 🔧 **TypeScript** - Full type safety across the application
-- 📱 **Responsive Design** - Mobile-first responsive design
-- 🌙 **Dark Mode** - Built-in dark mode support
-- ♿ **Accessible** - WCAG compliant components
-- 🧩 **Component Library** - Pre-built, customizable UI components
+---
 
-## 🏃‍♂️ Getting Started
+## 📌 Project Overview
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+This project is an AI-powered chatbot for the digital pharmacy **Cepat Sehat**, built using **n8n** and integrated with **LLMs** (Gemini/OpenAI), **Pinecone** for vector-based RAG, **Supabase** for database management, and **Xendit** for payment processing.
 
-2. **Run the development server:**
-   ```bash
-   npm run dev
-   ```
+---
 
-3. **Open your browser:**
-   Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
+## 💡 Objectives & Benefits
 
-## 📁 Project Structure
+- Deliver fast, contextual AI-generated responses to pharmacy-related queries.
+- Allow customers to place pharmacy orders directly through the chatbot.
+- Automate the workflow from conversation → order creation → payment generation.
+- Showcase the potential of RAG (Retrieval-Augmented Generation) using low-code architecture with a clean, modular flow.
 
-```
-src/
-├── app/                 # Next.js App Router pages
-│   ├── globals.css     # Global styles
-│   ├── layout.tsx      # Root layout
-│   └── page.tsx        # Home page
-├── components/         # React components
-│   └── ui/            # shadcn/ui components
-└── lib/               # Utility functions
-    └── utils.ts       # Common utilities
-```
+---
 
-## 🎨 Adding Components
+## ⚙️ Technologies & Tools
 
-Add new shadcn/ui components using the CLI:
+| Component        | Technology                          |
+|------------------|-------------------------------------|
+| Automation Engine| [n8n](https://n8n.io)               |
+| AI Model         | Gemini 1.5 Pro (Google AI)          |
+| Vector Store     | [Pinecone](https://www.pinecone.io) |
+| Payment Gateway  | [Xendit](https://xendit.co)         |
+| Frontend Hosting | [Vercel](https://vercel.com) (Static site, generated using `v0`) |
+| Database         | [Supabase](https://supabase.io)     |
+| LLM Agent Logic  | Custom prompt agent + JSON parsing  |
+| UI/UX            | Minimal interface via Webhook + vibe-code-style |
 
-```bash
-npx shadcn@latest add [component-name]
-```
+---
 
-Popular components to try:
-- `button` - Various button variants
-- `card` - Card container component
-- `input` - Form input component
-- `dialog` - Modal/dialog component
-- `dropdown-menu` - Dropdown menu component
+## 🔄 Workflow Overview
 
-## 🎯 Development
+### 1. 🔍 RAG for Pharmacy-Related Questions
+- Customer input is processed by the AI agent.
+- Relevant vector data is retrieved from Pinecone.
+- The AI model uses the retrieved context to generate a precise response.
 
-- **Edit pages:** Modify files in `src/app/` directory
-- **Add components:** Create new components in `src/components/`
-- **Styling:** Use Tailwind CSS classes and shadcn/ui components
-- **Icons:** Import icons from `lucide-react`
+**Vector source files:**
+- `pharmacy_payment.jsonl`
+- `pharmacy_items.jsonl`
+- `pharmacy_delivery.jsonl`
+- `ai_pharmacy_behavior.jsonl`
 
-## 🚀 Build and Deploy
+---
 
-Build for production:
-```bash
-npm run build
-```
+### 2. 🛒 Order Intent Detection & Processing
+- The system detects whether the customer's intent is to place an order.
+  - If the customer does not exist → create a new entry.
+  - If the customer exists → reuse existing record.
+- Order input is validated and parsed.
+- Order data is stored in Supabase (`orders` table).
 
-The easiest way to deploy is using [Vercel](https://vercel.com/new):
+---
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/your-repo)
+### 3. 💳 Xendit Payment Integration
+- After the order is created:
+  - A payment session is generated via the Xendit API.
+  - A secure payment link is returned to the customer for checkout.
 
-## 📚 Learn More
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
-- [shadcn/ui Documentation](https://ui.shadcn.com/) - Component library documentation
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs) - Utility-first CSS framework
-- [Lucide Icons](https://lucide.dev/icons) - Browse available icons
+## 🧩 Flow Design: Modular & Scalable
 
-## 🤝 Contributing
+Each part of the n8n flow is organized into logical modules:
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+- **Intent Validation Node** → Parses AI output to determine order or question intent.
+- **Vector Search Node** → Connects to Pinecone to fetch relevant context.
+- **Customer Management Node** → Creates or retrieves customer records.
+- **Order Creation Node** → Validates and saves order with pricing logic.
+- **Payment Node** → Interacts with Xendit to generate session and payment link.
+- **Logging Node** → Archives full conversation and order to Supabase.
+
+---
+
+## 🧪 Challenges & Limitations
+
+- ⚠️ **Gemini Free Tier is limited**: Response quality may degrade once usage limits are reached.
+- ❌ **Stock quantity is not yet updated** automatically after a successful order.
+- 🔐 **Phone/email validation** is not yet integrated.
+- 🛒 **Product stock API** is not yet available in real-time.
+
+---
+
+## 🔮 Future Improvements
+
+- 🔁 Auto-update product stock after payment confirmation (using Xendit callback).
+- 🧠 Fallback to OpenAI API when Gemini quota is exhausted.
+- 📱 Expand support to WhatsApp and Telegram for multichannel communication.
+- 💊 AI-based consultation or prescription service integration.
+
+---
+
+## 🧠 Sample Prompt for AI Agent
+
+```json
+You are a helpful and friendly pharmacy assistant for **Cepat Sehat**, a digital clinic in **Bali and Jakarta**, responding to customers via **WhatsApp**.
+
+You always use warm and simple language in **Bahasa Indonesia, English, or French**, depending on the customer's language.
+
+[Output Format - JSON ONLY]
+{
+  "isOrder": boolean,
+  "orderData": { ... },
+  "message": "[Your helpful response here]"
+}
