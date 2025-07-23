@@ -1,0 +1,124 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "path": "chat-pharmacy",
+        "method": "POST",
+        "responseMode": "lastNode"
+      },
+      "id": "Webhook_Trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://<SUPABASE_URL>/rest/v1/chat_history?session_id=eq={{$json[\"sessionId\"]}}&order=timestamp.desc&limit=5",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {"name": "apikey", "value": "<SUPABASE_ANON_KEY>"},
+            {"name": "Authorization", "value": "Bearer <SUPABASE_ANON_KEY>"}
+          ]
+        }
+      },
+      "name": "Get Chat History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "id": "Get_Chat_History"
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedText?key=<GEMINI_API_KEY>",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{ \"text\": \"{{$json[\"body\"].message}}\" }"
+      },
+      "name": "Gemini Embed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "id": "Gemini_Embed"
+    },
+    {
+      "parameters": {
+        "url": "https://<PINECONE_INDEX_NAME>-<ENV>.svc.<ENV>.pinecone.io/query",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {"name": "Api-Key", "value": "<PINECONE_API_KEY>"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "bodyParametersJson": "{\n  \"vector\": {{$json[\"embedding\"]}},\n  \"topK\": 3,\n  \"includeMetadata\": true\n}"
+      },
+      "name": "Query Pinecone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [700, 300],
+      "id": "Query_Pinecone"
+    },
+    {
+      "parameters": {
+        "functionCode": "const context = $json.matches.map(m => m.metadata.content).join('\n');\nconst userMessage = $json.body.message;\nreturn [{ json: {\n  prompt: `You are a helpful pharmacy assistant. Based on the context below, answer the user.\n\nContext:\n${context}\n\nUser: ${userMessage}`\n}}];"
+      },
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "id": "Build_Prompt"
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=<GEMINI_API_KEY>",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "{\n  \"contents\": [{\n    \"parts\": [{\n      \"text\": \"{{$json.prompt}}\"\n    }]\n  }]\n}"
+      },
+      "name": "Gemini LLM Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [1100, 300],
+      "id": "Gemini_LLM_Chat"
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { message: $json.candidates[0].content.parts[0].text } }];"
+      },
+      "name": "Format Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1300, 300],
+      "id": "Format_Response"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": [
+      {"node": "Get Chat History", "type": "main", "index": 0}
+    ],
+    "Get Chat History": [
+      {"node": "Gemini Embed", "type": "main", "index": 0}
+    ],
+    "Gemini Embed": [
+      {"node": "Query Pinecone", "type": "main", "index": 0}
+    ],
+    "Query Pinecone": [
+      {"node": "Build Prompt", "type": "main", "index": 0}
+    ],
+    "Build Prompt": [
+      {"node": "Gemini LLM Chat", "type": "main", "index": 0}
+    ],
+    "Gemini LLM Chat": [
+      {"node": "Format Response", "type": "main", "index": 0}
+    ]
+  }
+}

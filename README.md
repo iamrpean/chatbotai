@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Modern Next.js Chatbot Project
 
-## Getting Started
+A modern chatbot application built with the latest Next.js technologies and best practices.
 
-First, run the development server:
+## 🚀 Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **[Next.js 15](https://nextjs.org)** - React framework with App Router
+- **[TypeScript](https://www.typescriptlang.org/)** - Type safety and better developer experience
+- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
+- **[shadcn/ui](https://ui.shadcn.com/)** - Beautiful, accessible component library
+- **[Lucide React](https://lucide.dev/)** - Modern SVG icon library
+- **[Turbopack](https://turbo.build/pack)** - Fast development server
+
+## 🛠️ Features
+
+- ⚡ **Fast Development** - Powered by Turbopack for lightning-fast builds
+- 🎨 **Modern UI** - Beautiful components with shadcn/ui and Tailwind CSS
+- 🔧 **TypeScript** - Full type safety across the application
+- 📱 **Responsive Design** - Mobile-first responsive design
+- 🌙 **Dark Mode** - Built-in dark mode support
+- ♿ **Accessible** - WCAG compliant components
+- 🧩 **Component Library** - Pre-built, customizable UI components
+
+## 🏃‍♂️ Getting Started
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+3. **Open your browser:**
+   Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                 # Next.js App Router pages
+│   ├── globals.css     # Global styles
+│   ├── layout.tsx      # Root layout
+│   └── page.tsx        # Home page
+├── components/         # React components
+│   └── ui/            # shadcn/ui components
+└── lib/               # Utility functions
+    └── utils.ts       # Common utilities
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🎨 Adding Components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Add new shadcn/ui components using the CLI:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npx shadcn@latest add [component-name]
+```
 
-## Learn More
+Popular components to try:
+- `button` - Various button variants
+- `card` - Card container component
+- `input` - Form input component
+- `dialog` - Modal/dialog component
+- `dropdown-menu` - Dropdown menu component
 
-To learn more about Next.js, take a look at the following resources:
+## 🎯 Development
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Edit pages:** Modify files in `src/app/` directory
+- **Add components:** Create new components in `src/components/`
+- **Styling:** Use Tailwind CSS classes and shadcn/ui components
+- **Icons:** Import icons from `lucide-react`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🚀 Build and Deploy
 
-## Deploy on Vercel
+Build for production:
+```bash
+npm run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The easiest way to deploy is using [Vercel](https://vercel.com/new):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/your-repo)
+
+## 📚 Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
+- [shadcn/ui Documentation](https://ui.shadcn.com/) - Component library documentation
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs) - Utility-first CSS framework
+- [Lucide Icons](https://lucide.dev/icons) - Browse available icons
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

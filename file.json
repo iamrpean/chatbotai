@@ -1,0 +1,166 @@
+{
+    "name": "Healthcare AI Chatbot",
+    "nodes": [
+        {
+            "parameters": {
+                "path": "healthcare-chat",
+                "options": {}
+            },
+            "id": "1",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                200,
+                300
+            ],
+            "webhookId": "123456"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json[\"action\"]}}",
+                            "operation": "equals",
+                            "value2": "konsultasi_dokter"
+                        },
+                        {
+                            "value1": "={{$json[\"action\"]}}",
+                            "operation": "equals",
+                            "value2": "apotek_online"
+                        }
+                    ]
+                }
+            },
+            "id": "2",
+            "name": "Switch",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                400,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "return [{ json: { message: \"Anda telah memilih layanan Konsultasi Dokter. Silakan jelaskan keluhan atau gejala yang Anda alami, dan saya akan membantu menghubungkan Anda dengan dokter yang tepat.\" } }];"
+            },
+            "id": "3",
+            "name": "Konsultasi Dokter",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                600,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "return [{ json: { message: \"Anda telah memilih layanan Apotek Online. Saya dapat membantu Anda mencari obat, memeriksa ketersediaan, atau memberikan informasi tentang penggunaan obat. Ada yang bisa saya bantu?\" } }];"
+            },
+            "id": "4",
+            "name": "Apotek Online",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                600,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "const messages = [\n  `Terima kasih atas pesan Anda: \\\"${$json.message}\\\". Saya akan membantu Anda dengan informasi kesehatan yang Anda butuhkan.`,\n  `Saya memahami bahwa Anda mengatakan: \\\"${$json.message}\\\". Bisakah Anda memberikan detail lebih lanjut agar saya dapat membantu dengan lebih baik?`,\n  `Mengenai \\\"${$json.message}\\\" yang Anda sampaikan, saya siap membantu. Apakah ada gejala spesifik atau informasi tambahan yang ingin Anda bagikan?`,\n  `Saya telah menerima pesan Anda tentang \\\"${$json.message}\\\". Untuk memberikan bantuan terbaik, mohon ceritakan lebih detail tentang kondisi atau kebutuhan Anda.`\n];\n\nconst reply = messages[Math.floor(Math.random() * messages.length)];\n\nreturn [{ json: { message: reply } }];"
+            },
+            "id": "5",
+            "name": "Random Response",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                600,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "6",
+            "name": "Respond to UI",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                800,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch": {
+            "main": [
+                [
+                    {
+                        "node": "Konsultasi Dokter",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Apotek Online",
+                        "type": "main",
+                        "index": 1
+                    },
+                    {
+                        "node": "Random Response",
+                        "type": "main",
+                        "index": 2
+                    }
+                ]
+            ]
+        },
+        "Konsultasi Dokter": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to UI",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Apotek Online": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to UI",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Random Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to UI",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
