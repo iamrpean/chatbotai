@@ -1,6 +1,6 @@
 # 🧠 AI Chatbot Automation with n8n, Pinecone, and Xendit
 
-**Live URL:** [https://chatbotai-beige.vercel.app](https://chatbotai-beige.vercel.app)  
+**Live URL:** [https://chatbotai-8muesdknh-iamrepangmailcoms-projects.vercel.app/](https://chatbotai-8muesdknh-iamrepangmailcoms-projects.vercel.app/)  
 **Status:** 🚧 *Free Tier Limitations (Gemini 1.5 Pro)*  
 **Main Features:** RAG (Retrieval-Augmented Generation), Webhook Automation, Vector Search, Order + Payment Automation
 
